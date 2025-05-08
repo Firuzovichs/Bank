@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-v-7+m8r*o7_q2#8(ywpn@i4e=d!d#(uznhr-vk@myhhj3k*2g0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -102,11 +102,14 @@ AUTH_USER_MODEL = 'user.CustomUser'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'bank',
+        'USER': 'bankuser',
+        'PASSWORD': '9382',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
