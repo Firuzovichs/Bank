@@ -13,6 +13,75 @@ import cv2
 import numpy as np
 from PIL import Image
 from .models import BankUsers
+from django.db.models.functions import TruncMonth
+import calendar
+from django.db.models import Count
+from rest_framework.permissions import AllowAny,IsAuthenticated
+
+class MailItemStatsAPIView(APIView):
+    permission_classes = [IsAuthenticated]  # Agar ochiq bo'lishini istasangiz: [AllowAny]
+
+    def get(self, request):
+        total = MailItem.objects.count()
+        
+        completed = MailItem.objects.filter(
+    last_event_name__contains=["completed"]
+).count()
+
+        return_status = MailItem.objects.filter(
+    last_event_name__contains=["returning_to_origin"]
+).count()
+
+        other_count = total - completed - return_status
+
+        def percentage(count):
+            return round((count / total) * 100, 2) if total > 0 else 0
+
+
+        return Response({
+            "total_items": {
+                "count": total,
+                "percent": "100%"
+            },
+            "on_way_items": {
+                "count": completed,
+                "percent": f"{percentage(completed)}%"
+            },
+            "other_items": {
+                "count": other_count,
+                "percent": f"{percentage(other_count)}%"
+            },
+             "return": {
+                "count": return_status,
+                "percent": f"{percentage(return_status)}%"
+            }
+        })
+
+
+
+class ReceivedDateMonthCountView(APIView):
+    def get(self, request):
+        result = (
+            MailItem.objects
+            .filter(received_date__isnull=False)  # <--- null qiymatlar tashlab yuboriladi
+            .annotate(month=TruncMonth('received_date'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('-month')
+        )
+
+        result_with_names = []
+        for item in result:
+            month_name = calendar.month_name[item['month'].month]
+            result_with_names.append({
+                "month": month_name,
+                "year": item['month'].year,
+                "count": item['count']
+            })
+
+        return Response(result_with_names, status=status.HTTP_200_OK)
+
+
 
 
 class CheckMailItemAPIView(APIView):
