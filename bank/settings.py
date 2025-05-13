@@ -26,7 +26,8 @@ SECRET_KEY = 'django-insecure-v-7+m8r*o7_q2#8(ywpn@i4e=d!d#(uznhr-vk@myhhj3k*2g0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['ftp.treking.uz','localhost','127.0.0.1']
+SECURE_SSL_REDIRECT = True
 
 
 # Application definition
