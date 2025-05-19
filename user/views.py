@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .serizalizers import TokenObtainPairSerializer,BankUsersProfileSerializer
+from .serializers import TokenObtainPairSerializer,BankUsersProfileSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.views import APIView
 from rest_framework.response import Response
