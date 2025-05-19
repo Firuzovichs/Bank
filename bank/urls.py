@@ -1,7 +1,7 @@
 
 from django.contrib import admin
 from django.urls import path
-from user.views import MyTokenObtainPairView,MailItemUpdateStatus,CheckMailItemAPIView,FaceRecognitionAPIView,MailItemStatsAPIView,ReceivedDateMonthCountView
+from user.views import MyTokenObtainPairView,MailItemUpdateStatus,MailItemAllListView,BatchStatisticsAPIView,CheckMailItemAPIView,FaceRecognitionAPIView,MailItemStatsAPIView,ReceivedDateMonthCountView,DeliveredMailItemListView
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -14,7 +14,9 @@ urlpatterns = [
     path('api/v1/check-mail/', CheckMailItemAPIView.as_view(), name='check-mail'),
     path('api/v1/dashboard-status/', MailItemStatsAPIView.as_view(), name='dash-status'),
     path('api/v1/dashboard-months/', ReceivedDateMonthCountView.as_view(), name='dash-months'),
-
+    path('api/v1/checked-mails/', DeliveredMailItemListView.as_view(), name='checked-mails'),
+    path('api/v1/batch-status/', BatchStatisticsAPIView.as_view(), name='batch-status'),
+    path('api/v1/mails-all/', MailItemAllListView.as_view(), name='mails-all'),
 ]
 
 if settings.DEBUG:

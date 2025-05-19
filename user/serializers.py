@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
-from .models import BankUsers
+from .models import BankUsers,MailItem
 
 class BankUsersProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -26,3 +26,17 @@ class TokenObtainPairSerializer(serializers.Serializer):
             return {'access': str(refresh.access_token), 'refresh': str(refresh)}
         else:
             raise serializers.ValidationError("Invalid phone number or password.")
+        
+
+class MailItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MailItem
+        fields = [
+            'barcode',
+            'weight',
+            'send_date',
+            'received_date',
+            'last_event_date',
+            'city',
+            'is_check'
+        ]

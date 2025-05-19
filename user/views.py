@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny,IsAuthenticated
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import now
 import threading
+from django.db.models import Sum, Count
 from rest_framework import status
 from .models import MailItem
 import cv2
@@ -17,6 +18,173 @@ from django.db.models.functions import TruncMonth
 import calendar
 from django.db.models import Count
 from rest_framework.permissions import AllowAny,IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.generics import ListAPIView
+from .serializers import MailItemSerializer
+from collections import Counter
+from django.db.models import Q
+
+class BatchStatsView(APIView):
+    permission_classes = [IsAuthenticated]  # Bu API uchun autentifikatsiya talab qilinadi
+
+    def get(self, request):
+        # Request parametridan batch filtri olish
+        batch_filter = request.GET.get('batch')  # Batch parametri
+
+        # Agar batch parametri kiritilgan bo'lsa, faqat shu batch bo'yicha filtrlanadi
+        if batch_filter:
+            batches = MailItem.objects.filter(batch=batch_filter).values('batch').distinct()
+        else:
+            # Agar batch filtri bo'lmasa, barcha batchlarni olish
+            batches = MailItem.objects.values('batch').distinct()
+
+        batch_stats = []
+        for batch in batches:
+            batch_name = batch['batch']
+            # Har bir batchga tegishli RZ va CZ bilan boshlanadigan barcodelarni ajratish
+            rz_items = MailItem.objects.filter(batch=batch_name, barcode__startswith='RZ')
+            cz_items = MailItem.objects.filter(batch=batch_name, barcode__startswith='CZ')
+
+            # RZ va CZ bo‘yicha statistikani olish
+            rz_count = rz_items.count()  # RZ bilan boshlanadigan barcodelar soni
+            cz_count = cz_items.count()  # CZ bilan boshlanadigan barcodelar soni
+
+            rz_weight_sum = rz_items.aggregate(Sum('weight'))['weight__sum'] or 0  # RZ weightlari yig‘indisi
+            cz_weight_sum = cz_items.aggregate(Sum('weight'))['weight__sum'] or 0  # CZ weightlari yig‘indisi
+
+            # Batch uchun statistikani qo‘shish
+            batch_stats.append({
+                'batch': batch_name,
+                'rz_count': rz_count,
+                'cz_count': cz_count,
+                'rz_weight_sum': rz_weight_sum,
+                'cz_weight_sum': cz_weight_sum
+            })
+
+        return Response(batch_stats, status=status.HTTP_200_OK)
+
+
+class BatchStatisticsAPIView(APIView):
+    permission_classes = [IsAuthenticated]  # Bu API uchun autentifikatsiya talab qilinadi
+
+    def get(self, request):
+        # Request parametridan batch filtri olish
+        batch_filter = request.GET.get('batch')  # Batch parametri
+
+        # Agar batch parametri kiritilgan bo'lsa, faqat shu batch bo'yicha filtrlanadi
+        if batch_filter:
+            batches = MailItem.objects.filter(batch=batch_filter).values("batch").distinct()
+        else:
+            # Agar batch filtri bo'lmasa, barcha batchlarni olish
+            batches = MailItem.objects.values("batch").distinct()
+
+        # Barcha batchlar bo‘yicha weight yig‘indisini hisoblash
+        batch_stats = (
+            batches
+            .annotate(total_count=Count("barcode"))  # Har bir batch bo‘yicha barcode soni
+        )
+
+        # Har bir batch uchun natijani saqlash
+        result = {}
+
+        for batch in batch_stats:
+            batch_name = batch["batch"]
+            total_count = batch["total_count"]
+
+            items = MailItem.objects.filter(batch=batch_name)
+
+            status_counter = Counter()
+
+            for item in items:
+                if item.last_event_name:  
+                    last_status = item.last_event_name[-1]  # Oxirgi elementni olish
+                    status_counter[last_status] += 1
+
+            # Natijalarni batch bo‘yicha saqlash
+            result[batch_name] = {
+                "total_count": total_count,
+                "status_counts": status_counter  # Har bir batch uchun statuslar
+            }
+
+        return Response({"batch_statistics": result})
+
+
+class MailItemPagination(PageNumberPagination):
+    page_size = 10  # Har bir sahifada 10 ta element chiqadi
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+
+class MailItemAllListView(APIView):
+    permission_classes = [IsAuthenticated]  # Bu API uchun autentifikatsiya talab qilinadi
+
+    def get(self, request):
+        # Query parametrlardan filter uchun imkoniyat yaratish
+        filters = Q()
+
+        # Barcha mumkin bo‘lgan filter parametrlari
+        batch = request.GET.get('batch')
+        if batch:
+            filters &= Q(batch__icontains=batch)  # Batch bo‘yicha filter
+
+        barcode = request.GET.get('barcode')
+        if barcode:
+            filters &= Q(barcode__icontains=barcode)  # Barcode bo‘yicha filter
+
+        weight = request.GET.get('weight')
+        if weight:
+            try:
+                weight = float(weight)
+                filters &= Q(weight=weight)  # Weight bo‘yicha filter
+            except ValueError:
+                return Response({"error": "Invalid weight parameter"}, status=400)
+
+        city = request.GET.get('city')
+        if city:
+            filters &= Q(city__icontains=city)  # City bo‘yicha filter
+
+        # Last event name (listning oxirgi elementi bo‘yicha filter)
+        
+
+        date_fields = ['send_date', 'received_date', 'last_event_date']
+        for field in date_fields:
+            date_value = request.GET.get(field)
+            if date_value:
+                filters &= Q(**{f"{field}": date_value})  # Aniq sana bo‘yicha filter
+
+            from_date = request.GET.get(f"{field}_from")
+            if from_date:
+                filters &= Q(**{f"{field}__gte": from_date})  # Sana oraliq boshlanishi
+
+            to_date = request.GET.get(f"{field}_to")
+            if to_date:
+                filters &= Q(**{f"{field}__lte": to_date})  # Sana oraliq tugashi
+
+        # MailItem modelini filtratsiya qilish
+        mail_items = MailItem.objects.filter(filters).order_by('-updated_at')
+        last_event_name = request.GET.get('last_event_name')
+        if last_event_name:
+            mail_items = [item for item in mail_items if item.last_event_name and item.last_event_name[-1] == last_event_name]
+        # Sahifalashni qo‘shish
+        paginator = MailItemPagination()  # Pagination obyektini yaratish
+        paginated_mail_items = paginator.paginate_queryset(mail_items, request)  # Querysetni sahifalash
+        
+        # Serializer orqali ma'lumotlarni qaytarish
+        serializer = MailItemSerializer(paginated_mail_items, many=True)
+        
+        # Sahifalangan javobni qaytarish
+        return paginator.get_paginated_response(serializer.data)
+    
+
+
+class DeliveredMailItemListView(ListAPIView):
+    serializer_class = MailItemSerializer
+    pagination_class = MailItemPagination
+
+    def get_queryset(self):
+        return MailItem.objects.filter(is_delivered=True).order_by('-send_date')
+
 
 class MailItemStatsAPIView(APIView):
     permission_classes = [IsAuthenticated]  # Agar ochiq bo'lishini istasangiz: [AllowAny]
@@ -197,6 +365,12 @@ class MailItemUpdateStatus(APIView):
                 mail_item.last_event_date = event_date
                 mail_item.is_delivered = True 
                 mail_item.save(update_fields=['city', 'last_event_name', 'last_event_date','updated_at','is_delivered'])
+            elif status_text == "completed":
+                mail_item.city = warehouse_name
+                mail_item.last_event_name.append(status_text)
+                mail_item.last_event_date = event_date
+                mail_item.received_date = event_date
+                mail_item.save(update_fields=['city', 'last_event_name', 'last_event_date','updated_at','received_date'])
             else:
                 mail_item.city = warehouse_name
                 mail_item.last_event_name.append(status_text)
