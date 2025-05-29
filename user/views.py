@@ -326,7 +326,7 @@ class FaceRecognitionAPIView(APIView):
                     # Yuzlarni solishtirish
                     if np.array_equal(uploaded_encoding, existing_encoding):
                         # Agar yuzlar mos kelsa, faqat foydalanuvchining tokenini qaytarish
-                        return Response({'token': profile.token}, status=status.HTTP_200_OK)
+                        return Response({'token': profile.token,"phone_number":profile.phone_number}, status=status.HTTP_200_OK)
 
                 except Exception as e:
                     continue
