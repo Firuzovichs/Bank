@@ -277,8 +277,7 @@ class CheckMailItemAPIView(APIView):
         mail_item.save()
 
         return Response({"detail": "MailItem muvaffaqiyatli tekshirildi."}, status=status.HTTP_200_OK)
-
-
+import face_recognition
 
 
 class FaceRecognitionAPIView(APIView):
@@ -288,44 +287,42 @@ class FaceRecognitionAPIView(APIView):
             return Response({'error': 'Rasm jo‘natilmagan'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Base64 ni ochish va rasmga aylantirish
+            # Base64 dan rasmga
             if "base64," in base64_image:
                 base64_image = base64_image.split("base64,")[1]
 
             decoded_image = base64.b64decode(base64_image)
             image = Image.open(BytesIO(decoded_image)).convert("RGB")
             img = np.array(image)
-            gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-            # Haar Cascade yordamida yuzni aniqlash
-            face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-            faces = face_cascade.detectMultiScale(gray, 1.1, 4)
-
-            if len(faces) == 0:
+            # Yuz encodingini olish
+            uploaded_encodings = face_recognition.face_encodings(img)
+            if not uploaded_encodings:
                 return Response({'error': 'Yuz topilmadi'}, status=status.HTTP_400_BAD_REQUEST)
 
-            x, y, w, h = faces[0]
-            face_img = gray[y:y+h, x:x+w]
-            uploaded_encoding = cv2.resize(face_img, (128, 128))
+            uploaded_encoding = uploaded_encodings[0]
 
+            # Har bir profil bilan solishtirish
             for profile in BankUsers.objects.all():
                 if not profile.photo:
                     continue
                 try:
                     existing_image = Image.open(profile.photo.path).convert("RGB")
-                    existing_image = np.array(existing_image)
-                    existing_gray = cv2.cvtColor(existing_image, cv2.COLOR_RGB2GRAY)
+                    existing_image_np = np.array(existing_image)
 
-                    existing_faces = face_cascade.detectMultiScale(existing_gray, 1.1, 4)
-                    if len(existing_faces) == 0:
+                    existing_encodings = face_recognition.face_encodings(existing_image_np)
+                    if not existing_encodings:
                         continue
 
-                    ex_x, ex_y, ex_w, ex_h = existing_faces[0]
-                    existing_face_img = existing_gray[ex_y:ex_y+ex_h, ex_x:ex_x+ex_w]
-                    existing_encoding = cv2.resize(existing_face_img, (128, 128))
+                    existing_encoding = existing_encodings[0]
 
-                    if np.array_equal(uploaded_encoding, existing_encoding):
-                        return Response({'token': profile.token, "phone_number": profile.phone_number}, status=status.HTTP_200_OK)
+                    # Vektorlar orasidagi masofa
+                    distance = face_recognition.face_distance([existing_encoding], uploaded_encoding)[0]
+                    if distance < 0.6:  # 0.6 dan kichik bo‘lsa, o‘xshash deb hisoblanadi
+                        return Response({
+                            'token': profile.token,
+                            "phone_number": profile.phone_number
+                        }, status=status.HTTP_200_OK)
 
                 except Exception:
                     continue
@@ -334,7 +331,6 @@ class FaceRecognitionAPIView(APIView):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
