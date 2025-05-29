@@ -23,6 +23,8 @@ from rest_framework.generics import ListAPIView
 from .serializers import MailItemSerializer
 from collections import Counter
 from django.db.models import Q
+import base64
+from io import BytesIO
 
 class BatchStatsView(APIView):
     permission_classes = [IsAuthenticated]  # Bu API uchun autentifikatsiya talab qilinadi
@@ -278,16 +280,21 @@ class CheckMailItemAPIView(APIView):
 
 
 
+
 class FaceRecognitionAPIView(APIView):
     def post(self, request):
-        uploaded_file = request.FILES.get('photo')
-        if not uploaded_file:
+        base64_image = request.data.get('photo')
+        if not base64_image:
             return Response({'error': 'Rasm jo‘natilmagan'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Yuborilgan rasmni ochish va OpenCV formatiga o‘tkazish
-            img = Image.open(uploaded_file)
-            img = np.array(img)
+            # Base64 ni ochish va rasmga aylantirish
+            if "base64," in base64_image:
+                base64_image = base64_image.split("base64,")[1]
+
+            decoded_image = base64.b64decode(base64_image)
+            image = Image.open(BytesIO(decoded_image)).convert("RGB")
+            img = np.array(image)
             gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
             # Haar Cascade yordamida yuzni aniqlash
@@ -297,20 +304,15 @@ class FaceRecognitionAPIView(APIView):
             if len(faces) == 0:
                 return Response({'error': 'Yuz topilmadi'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Rasmni faqat birinchi yuz uchun o‘zgartirish
             x, y, w, h = faces[0]
             face_img = gray[y:y+h, x:x+w]
+            uploaded_encoding = cv2.resize(face_img, (128, 128))
 
-            # Rasmning xususiyatlarini olish
-            uploaded_encoding = cv2.resize(face_img, (128, 128))  # Yuzni kichraytirish va moslashtirish
-
-            # Barcha foydalanuvchilarning rasmlarini tekshirish
             for profile in BankUsers.objects.all():
                 if not profile.photo:
                     continue
                 try:
-                    # Foydalanuvchining rasmidan yuzni aniqlash
-                    existing_image = Image.open(profile.photo.path)
+                    existing_image = Image.open(profile.photo.path).convert("RGB")
                     existing_image = np.array(existing_image)
                     existing_gray = cv2.cvtColor(existing_image, cv2.COLOR_RGB2GRAY)
 
@@ -318,25 +320,20 @@ class FaceRecognitionAPIView(APIView):
                     if len(existing_faces) == 0:
                         continue
 
-                    # Rasmni faqat birinchi yuz uchun o‘zgartirish
                     ex_x, ex_y, ex_w, ex_h = existing_faces[0]
                     existing_face_img = existing_gray[ex_y:ex_y+ex_h, ex_x:ex_x+ex_w]
-                    existing_encoding = cv2.resize(existing_face_img, (128, 128))  # Yuzni kichraytirish va moslashtirish
+                    existing_encoding = cv2.resize(existing_face_img, (128, 128))
 
-                    # Yuzlarni solishtirish
                     if np.array_equal(uploaded_encoding, existing_encoding):
-                        # Agar yuzlar mos kelsa, faqat foydalanuvchining tokenini qaytarish
-                        return Response({'token': profile.token,"phone_number":profile.phone_number}, status=status.HTTP_200_OK)
+                        return Response({'token': profile.token, "phone_number": profile.phone_number}, status=status.HTTP_200_OK)
 
-                except Exception as e:
+                except Exception:
                     continue
 
-            # Agar mos foydalanuvchi topilmasa
             return Response({'message': 'Mos foydalanuvchi topilmadi'}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
