@@ -23,7 +23,7 @@ class TokenObtainPairSerializer(serializers.Serializer):
         if user and user.check_password(password):
             from rest_framework_simplejwt.tokens import RefreshToken
             refresh = RefreshToken.for_user(user)
-            return {'access': str(refresh.access_token), 'refresh': str(refresh)}
+            return {'access': str(refresh.access_token), 'refresh': str(refresh),'user_token': user.token}
         else:
             raise serializers.ValidationError("Invalid phone number or password.")
         
