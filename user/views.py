@@ -278,7 +278,7 @@ class CheckMailItemAPIView(APIView):
 
         return Response({"detail": "MailItem muvaffaqiyatli tekshirildi."}, status=status.HTTP_200_OK)
 import face_recognition
-
+from skimage.metrics import structural_similarity as ssim
 
 class FaceRecognitionAPIView(APIView):
     def post(self, request):
@@ -287,51 +287,60 @@ class FaceRecognitionAPIView(APIView):
             return Response({'error': 'Rasm jo‘natilmagan'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Base64 dan rasmga
             if "base64," in base64_image:
                 base64_image = base64_image.split("base64,")[1]
 
             decoded_image = base64.b64decode(base64_image)
             image = Image.open(BytesIO(decoded_image)).convert("RGB")
             img = np.array(image)
+            gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-            # Yuz encodingini olish
-            uploaded_encodings = face_recognition.face_encodings(img)
-            if not uploaded_encodings:
+            # HaarCascade bilan yuz topish
+            face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+            faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+
+            if len(faces) == 0:
                 return Response({'error': 'Yuz topilmadi'}, status=status.HTTP_400_BAD_REQUEST)
 
-            uploaded_encoding = uploaded_encodings[0]
+            x, y, w, h = faces[0]
+            uploaded_face = gray[y:y+h, x:x+w]
+            uploaded_face = cv2.resize(uploaded_face, (128, 128))
 
-            # Har bir profil bilan solishtirish
+            max_similarity = 0
+            matched_user = None
+
             for profile in BankUsers.objects.all():
                 if not profile.photo:
                     continue
                 try:
                     existing_image = Image.open(profile.photo.path).convert("RGB")
-                    existing_image_np = np.array(existing_image)
+                    existing_img_np = np.array(existing_image)
+                    existing_gray = cv2.cvtColor(existing_img_np, cv2.COLOR_RGB2GRAY)
 
-                    existing_encodings = face_recognition.face_encodings(existing_image_np)
-                    if not existing_encodings:
+                    existing_faces = face_cascade.detectMultiScale(existing_gray, 1.1, 4)
+                    if len(existing_faces) == 0:
                         continue
 
-                    existing_encoding = existing_encodings[0]
+                    ex_x, ex_y, ex_w, ex_h = existing_faces[0]
+                    existing_face = existing_gray[ex_y:ex_y+ex_h, ex_x:ex_x+ex_w]
+                    existing_face = cv2.resize(existing_face, (128, 128))
 
-                    # Vektorlar orasidagi masofa
-                    distance = face_recognition.face_distance([existing_encoding], uploaded_encoding)[0]
-                    if distance < 0.6:  # 0.6 dan kichik bo‘lsa, o‘xshash deb hisoblanadi
-                        return Response({
-                            'token': profile.token,
-                            "phone_number": profile.phone_number
-                        }, status=status.HTTP_200_OK)
+                    similarity = ssim(uploaded_face, existing_face)
+                    if similarity > max_similarity and similarity > 0.75:  # 0.75 - threshold
+                        max_similarity = similarity
+                        matched_user = profile
 
                 except Exception:
                     continue
+
+            if matched_user:
+                return Response({'token': matched_user.token, "phone_number": matched_user.phone_number}, status=status.HTTP_200_OK)
 
             return Response({'message': 'Mos foydalanuvchi topilmadi'}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+        
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
