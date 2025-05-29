@@ -25,6 +25,52 @@ from collections import Counter
 from django.db.models import Q
 import base64
 from io import BytesIO
+from deepface import DeepFace
+
+
+
+class FaceRecognitionAPIView(APIView):
+    def post(self, request):
+        base64_image = request.data.get('photo')
+        if not base64_image:
+            return Response({'error': 'Rasm jo‘natilmagan'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # base64 ni rasmga aylantirish
+            if "base64," in base64_image:
+                base64_image = base64_image.split("base64,")[1]
+            decoded_image = base64.b64decode(base64_image)
+            image = Image.open(BytesIO(decoded_image)).convert("RGB")
+            input_image = np.array(image)
+
+            matched_user = None
+            for profile in BankUsers.objects.all():
+                if not profile.photo:
+                    continue
+                try:
+                    # DeepFace compare
+                    result = DeepFace.verify(
+                        img1_path=input_image,
+                        img2_path=profile.photo.path,
+                        model_name="VGG-Face",  # yoki Facenet, ArcFace, Dlib, SFace
+                        enforce_detection=True
+                    )
+
+                    if result["verified"]:
+                        matched_user = profile
+                        break
+
+                except Exception as e:
+                    continue  # Agar aniqlay olmasa o‘tkazib yuboramiz
+
+            if matched_user:
+                return Response({'token': matched_user.token, "phone_number": matched_user.phone_number}, status=status.HTTP_200_OK)
+
+            return Response({'message': 'Mos foydalanuvchi topilmadi'}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class BatchStatsView(APIView):
     permission_classes = [IsAuthenticated]  # Bu API uchun autentifikatsiya talab qilinadi
@@ -277,70 +323,7 @@ class CheckMailItemAPIView(APIView):
         mail_item.save()
 
         return Response({"detail": "MailItem muvaffaqiyatli tekshirildi."}, status=status.HTTP_200_OK)
-class FaceRecognitionAPIView(APIView):
-    def post(self, request):
-        base64_image = request.data.get('photo')
-        if not base64_image:
-            return Response({'error': 'Rasm jo‘natilmagan'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            if "base64," in base64_image:
-                base64_image = base64_image.split("base64,")[1]
-
-            decoded_image = base64.b64decode(base64_image)
-            image = Image.open(BytesIO(decoded_image)).convert("RGB")
-            img = np.array(image)
-            gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-
-            # Yuzni aniqlash
-            face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-            faces = face_cascade.detectMultiScale(gray, 1.1, 4)
-
-            if len(faces) == 0:
-                return Response({'error': 'Yuz topilmadi'}, status=status.HTTP_400_BAD_REQUEST)
-
-            x, y, w, h = faces[0]
-            uploaded_face = gray[y:y+h, x:x+w]
-            uploaded_face = cv2.resize(uploaded_face, (128, 128))
-
-            matched_user = None
-            min_diff = float('inf')  # Farqni minimallashtirish
-
-            for profile in BankUsers.objects.all():
-                if not profile.photo:
-                    continue
-                try:
-                    existing_image = Image.open(profile.photo.path).convert("RGB")
-                    existing_img_np = np.array(existing_image)
-                    existing_gray = cv2.cvtColor(existing_img_np, cv2.COLOR_RGB2GRAY)
-
-                    existing_faces = face_cascade.detectMultiScale(existing_gray, 1.1, 4)
-                    if len(existing_faces) == 0:
-                        continue
-
-                    ex_x, ex_y, ex_w, ex_h = existing_faces[0]
-                    existing_face = existing_gray[ex_y:ex_y+ex_h, ex_x:ex_x+ex_w]
-                    existing_face = cv2.resize(existing_face, (128, 128))
-
-                    # Farqni hisoblash (MSE o‘rniga ABSDIFF)
-                    diff = cv2.absdiff(uploaded_face, existing_face)
-                    score = np.mean(diff)  # O‘rtacha piksel farqi
-
-                    if score < min_diff and score < 30:  # 30 — threshold, sozlanishi mumkin
-                        min_diff = score
-                        matched_user = profile
-
-                except Exception:
-                    continue
-
-            if matched_user:
-                return Response({'token': matched_user.token, "phone_number": matched_user.phone_number}, status=status.HTTP_200_OK)
-
-            return Response({'message': 'Mos foydalanuvchi topilmadi'}, status=status.HTTP_404_NOT_FOUND)
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+    
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
