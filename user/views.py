@@ -254,14 +254,14 @@ class ReceivedDateMonthCountView(APIView):
 
 class CheckMailItemAPIView(APIView):
     def post(self, request):
-        token = request.data.get("token")
+        phone_number = request.data.get("phone_number")
         barcode = request.data.get("barcode")
 
-        if not token or not barcode:
-            return Response({"detail": "Token va barcode talab qilinadi."}, status=status.HTTP_400_BAD_REQUEST)
+        if not phone_number or not barcode:
+            return Response({"detail": "phone_number va barcode talab qilinadi."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = BankUsers.objects.get(token=token)
+            user = BankUsers.objects.get(phone_number=phone_number)
         except BankUsers.DoesNotExist:
             return Response({"detail": "Noto‘g‘ri token."}, status=status.HTTP_401_UNAUTHORIZED)
 
