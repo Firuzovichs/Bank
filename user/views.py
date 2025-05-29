@@ -277,9 +277,6 @@ class CheckMailItemAPIView(APIView):
         mail_item.save()
 
         return Response({"detail": "MailItem muvaffaqiyatli tekshirildi."}, status=status.HTTP_200_OK)
-import face_recognition
-from skimage.metrics import structural_similarity as ssim
-
 class FaceRecognitionAPIView(APIView):
     def post(self, request):
         base64_image = request.data.get('photo')
@@ -295,7 +292,7 @@ class FaceRecognitionAPIView(APIView):
             img = np.array(image)
             gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-            # HaarCascade bilan yuz topish
+            # Yuzni aniqlash
             face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
             faces = face_cascade.detectMultiScale(gray, 1.1, 4)
 
@@ -306,8 +303,8 @@ class FaceRecognitionAPIView(APIView):
             uploaded_face = gray[y:y+h, x:x+w]
             uploaded_face = cv2.resize(uploaded_face, (128, 128))
 
-            max_similarity = 0
             matched_user = None
+            min_diff = float('inf')  # Farqni minimallashtirish
 
             for profile in BankUsers.objects.all():
                 if not profile.photo:
@@ -325,9 +322,12 @@ class FaceRecognitionAPIView(APIView):
                     existing_face = existing_gray[ex_y:ex_y+ex_h, ex_x:ex_x+ex_w]
                     existing_face = cv2.resize(existing_face, (128, 128))
 
-                    similarity = ssim(uploaded_face, existing_face)
-                    if similarity > max_similarity and similarity > 0.75:  # 0.75 - threshold
-                        max_similarity = similarity
+                    # Farqni hisoblash (MSE o‘rniga ABSDIFF)
+                    diff = cv2.absdiff(uploaded_face, existing_face)
+                    score = np.mean(diff)  # O‘rtacha piksel farqi
+
+                    if score < min_diff and score < 30:  # 30 — threshold, sozlanishi mumkin
+                        min_diff = score
                         matched_user = profile
 
                 except Exception:
