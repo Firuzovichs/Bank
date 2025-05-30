@@ -25,51 +25,51 @@ from collections import Counter
 from django.db.models import Q
 import base64
 from io import BytesIO
-from deepface import DeepFace
+# from deepface import DeepFace
 
 
 
-class FaceRecognitionAPIView(APIView):
-    def post(self, request):
-        base64_image = request.data.get('photo')
-        if not base64_image:
-            return Response({'error': 'Rasm jo‘natilmagan'}, status=status.HTTP_400_BAD_REQUEST)
+# class FaceRecognitionAPIView(APIView):
+#     def post(self, request):
+#         base64_image = request.data.get('photo')
+#         if not base64_image:
+#             return Response({'error': 'Rasm jo‘natilmagan'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            # base64 ni rasmga aylantirish
-            if "base64," in base64_image:
-                base64_image = base64_image.split("base64,")[1]
-            decoded_image = base64.b64decode(base64_image)
-            image = Image.open(BytesIO(decoded_image)).convert("RGB")
-            input_image = np.array(image)
+#         try:
+#             # base64 ni rasmga aylantirish
+#             if "base64," in base64_image:
+#                 base64_image = base64_image.split("base64,")[1]
+#             decoded_image = base64.b64decode(base64_image)
+#             image = Image.open(BytesIO(decoded_image)).convert("RGB")
+#             input_image = np.array(image)
 
-            matched_user = None
-            for profile in BankUsers.objects.all():
-                if not profile.photo:
-                    continue
-                try:
-                    # DeepFace compare
-                    result = DeepFace.verify(
-                        img1_path=input_image,
-                        img2_path=profile.photo.path,
-                        model_name="VGG-Face",  # yoki Facenet, ArcFace, Dlib, SFace
-                        enforce_detection=True
-                    )
+#             matched_user = None
+#             for profile in BankUsers.objects.all():
+#                 if not profile.photo:
+#                     continue
+#                 try:
+#                     # DeepFace compare
+#                     result = DeepFace.verify(
+#                         img1_path=input_image,
+#                         img2_path=profile.photo.path,
+#                         model_name="VGG-Face",  # yoki Facenet, ArcFace, Dlib, SFace
+#                         enforce_detection=True
+#                     )
 
-                    if result["verified"]:
-                        matched_user = profile
-                        break
+#                     if result["verified"]:
+#                         matched_user = profile
+#                         break
 
-                except Exception as e:
-                    continue  # Agar aniqlay olmasa o‘tkazib yuboramiz
+#                 except Exception as e:
+#                     continue  # Agar aniqlay olmasa o‘tkazib yuboramiz
 
-            if matched_user:
-                return Response({'token': matched_user.token, "phone_number": matched_user.phone_number}, status=status.HTTP_200_OK)
+#             if matched_user:
+#                 return Response({'token': matched_user.token, "phone_number": matched_user.phone_number}, status=status.HTTP_200_OK)
 
-            return Response({'message': 'Mos foydalanuvchi topilmadi'}, status=status.HTTP_404_NOT_FOUND)
+#             return Response({'message': 'Mos foydalanuvchi topilmadi'}, status=status.HTTP_404_NOT_FOUND)
 
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#         except Exception as e:
+#             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class BatchStatsView(APIView):
