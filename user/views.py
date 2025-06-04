@@ -26,6 +26,7 @@ from django.db.models import Q
 import base64
 from io import BytesIO
 # from deepface import DeepFace
+import face_recognition
 
 
 
@@ -36,32 +37,40 @@ from io import BytesIO
 #             return Response({'error': 'Rasm jo‘natilmagan'}, status=status.HTTP_400_BAD_REQUEST)
 
 #         try:
-#             # base64 ni rasmga aylantirish
 #             if "base64," in base64_image:
 #                 base64_image = base64_image.split("base64,")[1]
+            
 #             decoded_image = base64.b64decode(base64_image)
 #             image = Image.open(BytesIO(decoded_image)).convert("RGB")
-#             input_image = np.array(image)
+#             input_image_np = np.array(image)
+
+#             # Kiruvchi rasmning yuz kodini olish
+#             input_encodings = face_recognition.face_encodings(input_image_np)
+#             if not input_encodings:
+#                 return Response({'error': 'Yuz aniqlanmadi'}, status=status.HTTP_400_BAD_REQUEST)
+
+#             input_encoding = input_encodings[0]
 
 #             matched_user = None
 #             for profile in BankUsers.objects.all():
 #                 if not profile.photo:
 #                     continue
-#                 try:
-#                     # DeepFace compare
-#                     result = DeepFace.verify(
-#                         img1_path=input_image,
-#                         img2_path=profile.photo.path,
-#                         model_name="VGG-Face",  # yoki Facenet, ArcFace, Dlib, SFace
-#                         enforce_detection=True
-#                     )
 
-#                     if result["verified"]:
-#                         matched_user = profile
-#                         break
+#                 # Profil rasmini yuklab, kod olish
+#                 profile_image = face_recognition.load_image_file(profile.photo.path)
+#                 profile_encodings = face_recognition.face_encodings(profile_image)
 
-#                 except Exception as e:
-#                     continue  # Agar aniqlay olmasa o‘tkazib yuboramiz
+#                 if not profile_encodings:
+#                     continue
+
+#                 profile_encoding = profile_encodings[0]
+
+#                 # Yuzlarni taqqoslash (toleransni o'zingiz sozlashingiz mumkin, masalan 0.6)
+#                 matches = face_recognition.compare_faces([profile_encoding], input_encoding, tolerance=0.5)
+
+#                 if matches[0]:
+#                     matched_user = profile
+#                     break
 
 #             if matched_user:
 #                 return Response({'token': matched_user.token, "phone_number": matched_user.phone_number}, status=status.HTTP_200_OK)
@@ -70,7 +79,6 @@ from io import BytesIO
 
 #         except Exception as e:
 #             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class BatchStatsView(APIView):
     permission_classes = [IsAuthenticated]  # Bu API uchun autentifikatsiya talab qilinadi
