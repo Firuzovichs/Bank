@@ -10,7 +10,6 @@ import threading
 from django.db.models import Sum, Count
 from rest_framework import status
 from .models import MailItem
-import cv2
 import numpy as np
 from PIL import Image
 from .models import BankUsers
