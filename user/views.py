@@ -23,8 +23,6 @@ from collections import Counter
 from django.db.models import Q
 import base64
 from io import BytesIO
-# from deepface import DeepFace
-import face_recognition
 
 
 
