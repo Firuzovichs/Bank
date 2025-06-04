@@ -8,7 +8,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.timezone import now
 import threading
 import numpy as np
-import insightface
+import face_recognition
 from django.db.models import Sum, Count
 from rest_framework import status
 from .models import MailItem
@@ -27,9 +27,6 @@ import base64
 from io import BytesIO
 
 
-model = insightface.app.FaceAnalysis(name='antelope', providers=['CPUExecutionProvider'])
-model.prepare(ctx_id=0, det_size=(640, 640))
-
 class FaceRecognitionAPIView(APIView):
     def post(self, request):
         base64_image = request.data.get('photo')
@@ -44,39 +41,48 @@ class FaceRecognitionAPIView(APIView):
             image = Image.open(BytesIO(decoded_image)).convert("RGB")
             img_np = np.array(image)
 
-            faces = model.get(img_np)
-            if len(faces) == 0:
+            # Yuzni aniqlash va embedding olish
+            face_locations = face_recognition.face_locations(img_np)
+            if not face_locations:
                 return Response({'error': 'Yuz aniqlanmadi'}, status=status.HTTP_400_BAD_REQUEST)
 
-            input_embedding = faces[0].embedding
+            face_encodings = face_recognition.face_encodings(img_np, face_locations)
+            input_encoding = face_encodings[0]
 
             matched_user = None
+
             for profile in BankUsers.objects.all():
                 if not profile.photo:
                     continue
+
                 profile_img = Image.open(profile.photo.path).convert("RGB")
                 profile_np = np.array(profile_img)
-                profile_faces = model.get(profile_np)
-                if len(profile_faces) == 0:
+
+                profile_face_locations = face_recognition.face_locations(profile_np)
+                if not profile_face_locations:
                     continue
 
-                profile_embedding = profile_faces[0].embedding
+                profile_encodings = face_recognition.face_encodings(profile_np, profile_face_locations)
+                if not profile_encodings:
+                    continue
 
-                # Kosinus o'xshashligi
-                cos_sim = np.dot(input_embedding, profile_embedding) / (np.linalg.norm(input_embedding) * np.linalg.norm(profile_embedding))
+                profile_encoding = profile_encodings[0]
 
-                if cos_sim > 0.6:  # Thresholdni tajriba bilan sozlash mumkin
+                match_results = face_recognition.compare_faces([profile_encoding], input_encoding, tolerance=0.5)
+                if match_results[0]:
                     matched_user = profile
                     break
 
             if matched_user:
-                return Response({'token': matched_user.token, "phone_number": matched_user.phone_number}, status=status.HTTP_200_OK)
+                return Response({
+                    'token': matched_user.token,
+                    'phone_number': matched_user.phone_number
+                }, status=status.HTTP_200_OK)
 
             return Response({'message': 'Mos foydalanuvchi topilmadi'}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
 
 class BatchStatsView(APIView):
     permission_classes = [IsAuthenticated]  # Bu API uchun autentifikatsiya talab qilinadi
