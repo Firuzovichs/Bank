@@ -32,12 +32,12 @@ SECURE_SSL_REDIRECT = False
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
-# CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
 # USE_X_FORWARDED_HOST = True
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-# CSRF_TRUSTED_ORIGINS = ['https://bank1.pochta.uz']
+CSRF_TRUSTED_ORIGINS = ['https://bank1.pochta.uz']
 # SESSION_COOKIE_DOMAIN = 'bank1.pochta.uz'
-# CSRF_COOKIE_DOMAIN = 'bank1.pochta.uz'
+CSRF_COOKIE_DOMAIN = 'bank1.pochta.uz'
 
 
 # Application definition
