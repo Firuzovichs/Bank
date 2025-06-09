@@ -25,6 +25,9 @@ from collections import Counter
 from django.db.models import Q
 import base64
 from io import BytesIO
+import base64
+import uuid
+from django.core.files.base import ContentFile
 
 class MailItemPagination(PageNumberPagination):
     page_size = 10  # Har bir sahifada 10 ta element chiqadi
@@ -322,11 +325,11 @@ class ReceivedDateMonthCountView(APIView):
         return Response(result_with_names, status=status.HTTP_200_OK)
 
 
-
 class CheckMailItemAPIView(APIView):
     def post(self, request):
         phone_number = request.data.get("phone_number")
         barcode = request.data.get("barcode")
+        checked_image_base64 = request.data.get("checked_image")  # base64 rasm
 
         if not phone_number or not barcode:
             return Response({"detail": "phone_number va barcode talab qilinadi."}, status=status.HTTP_400_BAD_REQUEST)
@@ -343,7 +346,17 @@ class CheckMailItemAPIView(APIView):
 
         mail_item.is_check = True
         mail_item.checked_name = user.fish
-        mail_item.checked_time = timezone.now()  # ✅ Qo‘shildi
+        mail_item.checked_time = timezone.now()
+
+        if checked_image_base64:
+            try:
+                format, imgstr = checked_image_base64.split(';base64,')  # data:image/png;base64,xxxx
+                ext = format.split('/')[-1]
+                file_name = f"{uuid.uuid4()}.{ext}"
+                mail_item.checked_image = ContentFile(base64.b64decode(imgstr), name=file_name)
+            except Exception as e:
+                return Response({"detail": "Rasmni saqlashda xatolik yuz berdi.", "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         mail_item.save()
 
         return Response({"detail": "MailItem muvaffaqiyatli tekshirildi."}, status=status.HTTP_200_OK)

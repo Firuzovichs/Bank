@@ -35,14 +35,15 @@ class TokenObtainPairSerializer(serializers.Serializer):
         
 
 class MailItemSerializer(serializers.ModelSerializer):
+    checked_image = serializers.ImageField(read_only=True)  # URL shaklida bo‘ladi yoki null
+    checked_time = serializers.DateTimeField(read_only=True)
+    checked_name = serializers.CharField(read_only=True)
+
     class Meta:
         model = MailItem
         fields = [
-            'barcode',
-            'weight',
-            'send_date',
-            'received_date',
-            'last_event_date',
-            'city',
-            'is_check'
+            'barcode', 'weight', 'send_date',
+            'received_date', 'last_event_date',
+            'city','is_check',
+            'checked_name', 'checked_time', 'checked_image'
         ]

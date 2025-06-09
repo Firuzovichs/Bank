@@ -73,6 +73,7 @@ class MailItem(models.Model):
     is_check = models.BooleanField(default=False)
     checked_name = models.CharField(max_length=255,null=True,blank=True)
     checked_time = models.DateTimeField(null=True, blank=True)  # ✅ Qo‘shildi
+    checked_image = models.ImageField(upload_to='checked_images/', null=True, blank=True)  # Yangi maydon
 
     def __str__(self):
         return f"{self.batch} - {self.barcode}"
