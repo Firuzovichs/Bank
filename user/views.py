@@ -20,11 +20,27 @@ from django.db.models import Count
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import ListAPIView
-from .serializers import MailItemSerializer
+from .serializers import MailItemSerializer,CheckedMailItemSerializer
 from collections import Counter
 from django.db.models import Q
 import base64
 from io import BytesIO
+
+class MailItemPagination(PageNumberPagination):
+    page_size = 10  # Har bir sahifada 10 ta element chiqadi
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+
+class CheckedMailItemsAPIView(APIView):
+    def get(self, request):
+        queryset = MailItem.objects.filter(is_check=True).order_by('-checked_time')
+        paginator = MailItemPagination()
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = CheckedMailItemSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
 
 
 class FaceRecognitionAPIView(APIView):
@@ -169,10 +185,6 @@ class BatchStatisticsAPIView(APIView):
         return Response({"batch_statistics": result})
 
 
-class MailItemPagination(PageNumberPagination):
-    page_size = 10  # Har bir sahifada 10 ta element chiqadi
-    page_size_query_param = 'page_size'
-    max_page_size = 100
 
 
 

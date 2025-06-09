@@ -4,6 +4,12 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import BankUsers,MailItem
 
+
+class CheckedMailItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MailItem
+        fields = ['barcode', 'checked_name', 'checked_time']
+
 class BankUsersProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = BankUsers
