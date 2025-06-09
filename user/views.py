@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from django.utils.dateparse import parse_datetime
 from django.utils.timezone import now
-import threading
+from django.utils import timezone
 import numpy as np
 import face_recognition
 from django.db.models import Sum, Count
@@ -309,7 +309,6 @@ class ReceivedDateMonthCountView(APIView):
 
 
 
-
 class CheckMailItemAPIView(APIView):
     def post(self, request):
         phone_number = request.data.get("phone_number")
@@ -330,6 +329,7 @@ class CheckMailItemAPIView(APIView):
 
         mail_item.is_check = True
         mail_item.checked_name = user.fish
+        mail_item.checked_time = timezone.now()  # ✅ Qo‘shildi
         mail_item.save()
 
         return Response({"detail": "MailItem muvaffaqiyatli tekshirildi."}, status=status.HTTP_200_OK)

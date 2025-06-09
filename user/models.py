@@ -72,6 +72,8 @@ class MailItem(models.Model):
     is_delivered = models.BooleanField(default=False)
     is_check = models.BooleanField(default=False)
     checked_name = models.CharField(max_length=255,null=True,blank=True)
+    checked_time = models.DateTimeField(null=True, blank=True)  # ✅ Qo‘shildi
+
     def __str__(self):
         return f"{self.batch} - {self.barcode}"
 
