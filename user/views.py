@@ -34,6 +34,7 @@ class MailItemPagination(PageNumberPagination):
 
 
 class CheckedMailItemsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         queryset = MailItem.objects.filter(is_check=True).order_by('-checked_time')
         paginator = MailItemPagination()
@@ -44,6 +45,7 @@ class CheckedMailItemsAPIView(APIView):
 
 
 class FaceRecognitionAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         base64_image = request.data.get('photo')
         if not base64_image:
