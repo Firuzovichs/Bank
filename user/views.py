@@ -244,27 +244,26 @@ class DeliveredMailItemListView(ListAPIView):
 
     def get_queryset(self):
         return MailItem.objects.filter(is_delivered=True).order_by('-send_date')
-
+    
 
 class MailItemStatsAPIView(APIView):
-    permission_classes = [IsAuthenticated]  # Agar ochiq bo'lishini istasangiz: [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        total = MailItem.objects.count()
-        
-        completed = MailItem.objects.filter(
-    last_event_name__contains=["completed"]
-).count()
+        user = request.user
+        first_name = user.first_name
+        last_name = user.last_name
 
-        return_status = MailItem.objects.filter(
-    last_event_name__contains=["returning_to_origin"]
-).count()
+        # Faqat city = user.first_name bo'lgan MailItemlar
+        queryset = MailItem.objects.filter(city=first_name)
+        total = queryset.count()
 
+        completed = queryset.filter(last_event_name__contains="completed").count()
+        return_status = queryset.filter(last_event_name__contains="returning_to_origin").count()
         other_count = total - completed - return_status
 
         def percentage(count):
             return round((count / total) * 100, 2) if total > 0 else 0
-
 
         return Response({
             "total_items": {
@@ -275,16 +274,15 @@ class MailItemStatsAPIView(APIView):
                 "count": completed,
                 "percent": f"{percentage(completed)}%"
             },
+            "return": {
+                "count": return_status,
+                "percent": f"{percentage(return_status)}%"
+            },
             "other_items": {
                 "count": other_count,
                 "percent": f"{percentage(other_count)}%"
-            },
-             "return": {
-                "count": return_status,
-                "percent": f"{percentage(return_status)}%"
             }
         })
-
 
 
 class ReceivedDateMonthCountView(APIView):
