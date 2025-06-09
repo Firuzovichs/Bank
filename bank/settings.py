@@ -27,17 +27,17 @@ SECRET_KEY = 'django-insecure-v-7+m8r*o7_q2#8(ywpn@i4e=d!d#(uznhr-vk@myhhj3k*2g0
 DEBUG = False
 ALLOWED_HOSTS = ['bank1.pochta.uz','localhost','127.0.0.1','bank.pochta.uz','10.100.0.18']
 SECURE_SSL_REDIRECT = False
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# CSRF_COOKIE_SECURE = True
+# SESSION_COOKIE_SECURE = True
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
-CSRF_COOKIE_HTTPONLY = True
-USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_TRUSTED_ORIGINS = ['https://bank1.pochta.uz']
-SESSION_COOKIE_DOMAIN = 'bank1.pochta.uz'
-CSRF_COOKIE_DOMAIN = 'bank1.pochta.uz'
+# CSRF_COOKIE_HTTPONLY = True
+# USE_X_FORWARDED_HOST = True
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# CSRF_TRUSTED_ORIGINS = ['https://bank1.pochta.uz']
+# SESSION_COOKIE_DOMAIN = 'bank1.pochta.uz'
+# CSRF_COOKIE_DOMAIN = 'bank1.pochta.uz'
 
 
 # Application definition
