@@ -364,46 +364,45 @@ class CheckMailItemAPIView(APIView):
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
-
 class MailItemUpdateStatus(APIView):
     permission_classes = [AllowAny]
+
     def post(self, request):
         data = request.data
-        print(data)
-        barcode = data.get("order_number") 
-        warehouse_name = data.get("warehouse_name") 
-        status_text = data.get("status")  
+        barcode = data.get("order_number")
+        warehouse_name = data.get("warehouse_name")
+        status_text = data.get("status")
         date_value = data.get("date")
+
+        if not barcode:
+            return Response({"error": "order_number (barcode) is required"}, status=400)
+
         if isinstance(date_value, str):
             event_date = parse_datetime(date_value)
         else:
-            return Response({"error": "Invalid or missing 'date' field"}, status=400) 
+            return Response({"error": "Invalid or missing 'date' field"}, status=400)
 
         try:
             mail_item = MailItem.objects.get(barcode=barcode)
-            if status_text == "completed":
-                mail_item.city = warehouse_name
-                mail_item.last_event_name.append(status_text)
-                mail_item.last_event_date = event_date
-                mail_item.is_delivered = True 
-                mail_item.save(update_fields=['city', 'last_event_name', 'last_event_date','updated_at','is_delivered'])
-            elif status_text == "completed":
-                mail_item.city = warehouse_name
-                mail_item.last_event_name.append(status_text)
-                mail_item.last_event_date = event_date
-                mail_item.received_date = event_date
-                mail_item.save(update_fields=['city', 'last_event_name', 'last_event_date','updated_at','received_date'])
-            else:
-                mail_item.city = warehouse_name
-                mail_item.last_event_name.append(status_text)
-                mail_item.last_event_date = event_date 
-                mail_item.save(update_fields=['city', 'last_event_name', 'last_event_date','updated_at'])
-
-
-            return Response({"message": "MailItem updated successfully"}, status=200)
-
-
         except MailItem.DoesNotExist:
-            return Response({"error": f"MailItem with barcode {barcode} not found"}, status=status.HTTP_404_NOT_FOUND)
+            # Agar mavjud bo'lmasa — yangi yaratamiz
+            mail_item = MailItem(barcode=barcode)
 
+        # Umumiy yangilanishlar
+        mail_item.city = warehouse_name
+        mail_item.last_event_date = event_date
 
+        # listga qo'shish (list bo'lsa)
+        if not isinstance(mail_item.last_event_name, list):
+            mail_item.last_event_name = []
+        mail_item.last_event_name.append(status_text)
+
+        # Statusga qarab maxsus maydonlarni yangilash
+        if status_text == "completed":
+            mail_item.is_delivered = True
+        elif status_text == "received":
+            mail_item.received_date = event_date
+
+        mail_item.save()
+
+        return Response({"message": "MailItem updated or created successfully"}, status=200)
