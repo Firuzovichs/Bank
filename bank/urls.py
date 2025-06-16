@@ -5,6 +5,7 @@ from user.views import CheckedMailItemsAPIView,FaceRecognitionAPIView,MyTokenObt
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.conf import settings
 from django.conf.urls.static import static
+
 urlpatterns = [
     path('management/admin/', admin.site.urls),
     path('api/v1/face-recognition/', FaceRecognitionAPIView.as_view(), name='face-recognition'),

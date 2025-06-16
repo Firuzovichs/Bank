@@ -94,3 +94,21 @@ class BankUsers(models.Model):
 
     def __str__(self):
         return self.fish
+    
+
+class Region(models.Model):  # Viloyat
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class District(models.Model):  # Tuman
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name='districts')
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        unique_together = ('region', 'name')  # Bir viloyat ichida tuman nomlari takrorlanmasin
+
+    def __str__(self):
+        return f"{self.name} ({self.region.name})"

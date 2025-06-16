@@ -1,7 +1,18 @@
 
 from django.contrib import admin
-from .models import MailItem, CustomUser,BankUsers
+from .models import MailItem, CustomUser,BankUsers,Region,District
 from django.contrib.auth.admin import UserAdmin
+
+@admin.register(Region)
+class RegionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name')
+
+@admin.register(District)
+class DistrictAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'region')
+    list_filter = ('region',)
+
+
 
 class BankUsersAdmin(admin.ModelAdmin):
     list_display = ('fish', 'phone_number', 'region', 'district', 'lavozimi', 'token')
