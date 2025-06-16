@@ -69,7 +69,9 @@ class MailItem(models.Model):
     send_date = models.DateTimeField(null=True, blank=True)  # ✅ Bo‘sh bo‘lishi mumkin
     received_date = models.DateTimeField(null=True, blank=True)
     last_event_date = models.DateTimeField(null=True, blank=True)
-    last_event_name = models.JSONField(default=list)  
+    last_event_name = models.JSONField(default=list)
+    region = models.CharField(max_length=255,null=True,blank=True)
+    district = models.CharField(max_length=255, null=True,blank=True)  
     city = models.CharField(max_length=150, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_delivered = models.BooleanField(default=False)
