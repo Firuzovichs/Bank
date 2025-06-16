@@ -15,7 +15,7 @@ class DistrictAdmin(admin.ModelAdmin):
 
 
 class BankUsersAdmin(admin.ModelAdmin):
-    list_display = ('fish', 'phone_number', 'region', 'district', 'lavozimi', 'token')
+    list_display = ('fish', 'phone_number', 'region', 'district', 'lavozimi', 'token','region','district')
     search_fields = ('fish', 'phone_number', 'region', 'district', 'lavozimi')
     list_filter = ('region', 'district', 'lavozimi')
     ordering = ('fish',)
@@ -30,7 +30,7 @@ class CustomUserAdmin(admin.ModelAdmin):
     # Maydonlarni chiqarish tartibini belgilash
     fieldsets = (
         (None, {
-            'fields': ('phone_number', 'first_name', 'last_name', 'password', 'is_active', 'is_staff', 'is_superuser')
+            'fields': ('phone_number', 'first_name', 'last_name', 'password', 'is_active', 'is_staff', 'is_superuser','viloyat','tuman')
         }),
         ('Additional Info', {
             'fields': ('created_at',),
