@@ -13,7 +13,7 @@ from django.db.models import Sum, Count
 from rest_framework import status
 from .models import MailItem
 from PIL import Image
-from .models import BankUsers
+from .models import BankUsers,Region,District
 from django.db.models.functions import TruncMonth
 import calendar
 from django.db.models import Count
@@ -364,6 +364,8 @@ class CheckMailItemAPIView(APIView):
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
+
+
 class MailItemUpdateStatus(APIView):
     permission_classes = [AllowAny]
 
@@ -385,23 +387,31 @@ class MailItemUpdateStatus(APIView):
         try:
             mail_item = MailItem.objects.get(barcode=barcode)
         except MailItem.DoesNotExist:
-            # Agar mavjud bo'lmasa — yangi yaratamiz
             mail_item = MailItem(barcode=barcode)
 
-        # Umumiy yangilanishlar
-        mail_item.city = warehouse_name
+        # Statusga qarab city ni region/districtdan olish
+        if status_text == "completed":
+            try:
+                region = Region.objects.get(name__iexact=warehouse_name)
+                mail_item.city = region.name
+            except Region.DoesNotExist:
+                try:
+                    district = District.objects.get(name__iexact=warehouse_name)
+                    mail_item.city = district.region.name
+                except District.DoesNotExist:
+                    mail_item.city = warehouse_name
+
+            mail_item.is_delivered = True
+
+        elif status_text == "received":
+            mail_item.received_date = event_date
+
+        # Umumiy maydonlar
         mail_item.last_event_date = event_date
 
-        # listga qo'shish (list bo'lsa)
         if not isinstance(mail_item.last_event_name, list):
             mail_item.last_event_name = []
         mail_item.last_event_name.append(status_text)
-
-        # Statusga qarab maxsus maydonlarni yangilash
-        if status_text == "completed":
-            mail_item.is_delivered = True
-        elif status_text == "received":
-            mail_item.received_date = event_date
 
         mail_item.save()
 

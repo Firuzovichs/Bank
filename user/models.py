@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractBaseUser,BaseUserManager,Permissi
 import secrets  # token yaratish uchun
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, phone_number, password=None, **extra_fields):
         if not phone_number:
@@ -23,7 +24,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     phone_number = models.CharField(max_length=15, unique=True)
     first_name = models.CharField(max_length=30, null=True, blank=True)
     last_name = models.CharField(max_length=30, null=True, blank=True)
-    password = models.CharField(max_length=255)  # Kengaytirilgan length
+    password = models.CharField(max_length=255)
+    viloyat = models.CharField(max_length=255, null=True,blank=True)
+    tuman = models.CharField(max_length=255, null=True, blank=True)  
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -34,13 +37,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     # Customize groups and user_permissions with related_name to avoid clashes
     groups = models.ManyToManyField(
         Group, 
-        related_name="customuser_set",  # Updated related_name
+        related_name="customuser_set", 
         blank=True
     )
     
     user_permissions = models.ManyToManyField(
         Permission, 
-        related_name="customuser_permissions_set",  # Updated related_name
+        related_name="customuser_permissions_set",  
         blank=True
     )
 
@@ -96,14 +99,14 @@ class BankUsers(models.Model):
         return self.fish
     
 
-class Region(models.Model):  # Viloyat
+class Region(models.Model): 
     name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name
 
 
-class District(models.Model):  # Tuman
+class District(models.Model): 
     region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name='districts')
     name = models.CharField(max_length=100)
 
