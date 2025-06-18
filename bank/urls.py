@@ -7,7 +7,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('management/admin/', admin.site.urls),
+    path('api/v1/management/admin/', admin.site.urls),
     path('api/v1/face-recognition/', FaceRecognitionAPIView.as_view(), name='face-recognition'),
     path('api/v1/checked-mails-page/', CheckedMailItemsAPIView.as_view(), name='tekshirilgan-api'),
     path('api/v1/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
