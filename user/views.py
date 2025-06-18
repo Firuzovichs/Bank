@@ -191,74 +191,76 @@ class BatchStatisticsAPIView(APIView):
 
 
 
+class MailItemAllListView(APIView):
+    permission_classes = [IsAuthenticated]  # Bu API uchun autentifikatsiya talab qilinadi
 
-def get(self, request):
-    filters = Q()
+    def get(self, request):
+        filters = Q()
 
-    # 1. Authenticated userga qarab cityni filter qilish
-    user = request.user
-    try:
-        user_profile = user.profile
-    except:
-        return Response({"error": "User profile not found"}, status=400)
-
-    region_name = None
-
-    if hasattr(user_profile, 'district') and user_profile.district:
-        region_name = user_profile.district.name
-        filters &= Q(district=region_name)
-    elif hasattr(user_profile, 'region') and user_profile.region:
-        region_name = user_profile.region.name
-        filters &= Q(region=region_name)
-    else:
-        return Response({"error": "User is not linked to a region or district"}, status=400)
-
-    # 2. Qo‘shimcha query parametrlarga asoslangan filterlar (siz berganlar)
-    batch = request.GET.get('batch')
-    if batch:
-        filters &= Q(batch__icontains=batch)
-
-    barcode = request.GET.get('barcode')
-    if barcode:
-        filters &= Q(barcode__icontains=barcode)
-
-    weight = request.GET.get('weight')
-    if weight:
+        # 1. Authenticated userga qarab cityni filter qilish
+        user = request.user
         try:
-            weight = float(weight)
-            filters &= Q(weight=weight)
-        except ValueError:
-            return Response({"error": "Invalid weight parameter"}, status=400)
+            user_profile = user.profile
+        except:
+            return Response({"error": "User profile not found"}, status=400)
 
-    city = request.GET.get('city')
-    if city:
-        filters &= Q(city__icontains=city)
+        region_name = None
 
-    date_fields = ['send_date', 'received_date', 'last_event_date']
-    for field in date_fields:
-        date_value = request.GET.get(field)
-        if date_value:
-            filters &= Q(**{f"{field}": date_value})
-        from_date = request.GET.get(f"{field}_from")
-        if from_date:
-            filters &= Q(**{f"{field}__gte": from_date})
-        to_date = request.GET.get(f"{field}_to")
-        if to_date:
-            filters &= Q(**{f"{field}__lte": to_date})
+        if hasattr(user_profile, 'district') and user_profile.district:
+            region_name = user_profile.district.name
+            filters &= Q(district=region_name)
+        elif hasattr(user_profile, 'region') and user_profile.region:
+            region_name = user_profile.region.name
+            filters &= Q(region=region_name)
+        else:
+            return Response({"error": "User is not linked to a region or district"}, status=400)
 
-    # MailItemlarni olish
-    mail_items = MailItem.objects.filter(filters).order_by('-updated_at')
+        # 2. Qo‘shimcha query parametrlarga asoslangan filterlar (siz berganlar)
+        batch = request.GET.get('batch')
+        if batch:
+            filters &= Q(batch__icontains=batch)
 
-    # last_event_name bo‘yicha filtr
-    last_event_name = request.GET.get('last_event_name')
-    if last_event_name:
-        mail_items = [item for item in mail_items if item.last_event_name and item.last_event_name[-1] == last_event_name]
+        barcode = request.GET.get('barcode')
+        if barcode:
+            filters &= Q(barcode__icontains=barcode)
 
-    # Sahifalash
-    paginator = MailItemPagination()
-    paginated_mail_items = paginator.paginate_queryset(mail_items, request)
-    serializer = MailItemSerializer(paginated_mail_items, many=True)
-    return paginator.get_paginated_response(serializer.data)
+        weight = request.GET.get('weight')
+        if weight:
+            try:
+                weight = float(weight)
+                filters &= Q(weight=weight)
+            except ValueError:
+                return Response({"error": "Invalid weight parameter"}, status=400)
+
+        city = request.GET.get('city')
+        if city:
+            filters &= Q(city__icontains=city)
+
+        date_fields = ['send_date', 'received_date', 'last_event_date']
+        for field in date_fields:
+            date_value = request.GET.get(field)
+            if date_value:
+                filters &= Q(**{f"{field}": date_value})
+            from_date = request.GET.get(f"{field}_from")
+            if from_date:
+                filters &= Q(**{f"{field}__gte": from_date})
+            to_date = request.GET.get(f"{field}_to")
+            if to_date:
+                filters &= Q(**{f"{field}__lte": to_date})
+
+        # MailItemlarni olish
+        mail_items = MailItem.objects.filter(filters).order_by('-updated_at')
+
+        # last_event_name bo‘yicha filtr
+        last_event_name = request.GET.get('last_event_name')
+        if last_event_name:
+            mail_items = [item for item in mail_items if item.last_event_name and item.last_event_name[-1] == last_event_name]
+
+        # Sahifalash
+        paginator = MailItemPagination()
+        paginated_mail_items = paginator.paginate_queryset(mail_items, request)
+        serializer = MailItemSerializer(paginated_mail_items, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
 
