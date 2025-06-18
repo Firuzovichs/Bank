@@ -190,32 +190,22 @@ class BatchStatisticsAPIView(APIView):
         return Response({"batch_statistics": result})
 
 
-
 class MailItemAllListView(APIView):
-    permission_classes = [IsAuthenticated]  # Bu API uchun autentifikatsiya talab qilinadi
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         filters = Q()
-
-        # 1. Authenticated userga qarab cityni filter qilish
         user = request.user
-        try:
-            user_profile = user.profile
-        except:
-            return Response({"error": "User profile not found"}, status=400)
 
-        region_name = None
-
-        if hasattr(user_profile, 'district') and user_profile.district:
-            region_name = user_profile.district.name
-            filters &= Q(district=region_name)
-        elif hasattr(user_profile, 'region') and user_profile.region:
-            region_name = user_profile.region.name
-            filters &= Q(region=region_name)
+        # Foydalanuvchining viloyat yoki tuman maydonlarini tekshirish
+        if user.tuman:
+            filters &= Q(district=user.tuman)
+        elif user.viloyat:
+            filters &= Q(region=user.viloyat)
         else:
-            return Response({"error": "User is not linked to a region or district"}, status=400)
+            return Response({"error": "Foydalanuvchi tuman yoki viloyat bilan bog‘lanmagan"}, status=400)
 
-        # 2. Qo‘shimcha query parametrlarga asoslangan filterlar (siz berganlar)
+        # Qo‘shimcha query parametrlarga asoslangan filterlar
         batch = request.GET.get('batch')
         if batch:
             filters &= Q(batch__icontains=batch)
@@ -230,7 +220,7 @@ class MailItemAllListView(APIView):
                 weight = float(weight)
                 filters &= Q(weight=weight)
             except ValueError:
-                return Response({"error": "Invalid weight parameter"}, status=400)
+                return Response({"error": "Noto‘g‘ri weight qiymati"}, status=400)
 
         city = request.GET.get('city')
         if city:
@@ -261,8 +251,6 @@ class MailItemAllListView(APIView):
         paginated_mail_items = paginator.paginate_queryset(mail_items, request)
         serializer = MailItemSerializer(paginated_mail_items, many=True)
         return paginator.get_paginated_response(serializer.data)
-
-
 
 class DeliveredMailItemListView(ListAPIView):
     serializer_class = MailItemSerializer
