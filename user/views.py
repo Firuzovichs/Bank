@@ -361,15 +361,15 @@ class CheckMailItemAPIView(APIView):
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
-
 class MailItemUpdateStatus(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
         data = request.data
         print(data)
+
         barcode = data.get("order_number")
-        warehouse_name = data.get("warehouse_name")
+        warehouse_name = data.get("warehouse_name", "")
         status_text = data.get("status")
         date_value = data.get("date")
 
@@ -386,32 +386,30 @@ class MailItemUpdateStatus(APIView):
         except MailItem.DoesNotExist:
             mail_item = MailItem(barcode=barcode)
 
-        # Har doim statusga bog'liq bo'lmasdan region/districtni yangilaymiz
-        found_location = False
-        try:
-            district = District.objects.filter(name__icontains=warehouse_name).first()
+        # Region va Districtni aniqlash (xavfsiz)
+        clean_name = warehouse_name.split("-")[0].split("/")[0].strip()
+        district = District.objects.filter(name__icontains=clean_name).first()
+        if district:
             mail_item.district = district.name
             mail_item.region = district.region.name
-            found_location = True
-        except District.DoesNotExist:
-            try:
-                region = Region.objects.filter(name__icontains=warehouse_name).first()
+        else:
+            region = Region.objects.filter(name__icontains=clean_name).first()
+            if region:
                 mail_item.region = region.name
-                found_location = True
-            except Region.DoesNotExist:
-                pass  # Hech narsa o‘zgartirilmaydi
 
+        # Statusga qarab qo‘shimcha maydonlarni to‘ldirish
         if status_text == "completed":
             mail_item.is_delivered = True
-
         elif status_text == "received":
             mail_item.received_date = event_date
 
-        # Umumiy maydonlar
+        # Umumiy yangilanishlar
         mail_item.last_event_date = event_date
 
+        # last_event_name ni list sifatida saqlaymiz (agar avval string bo'lsa ham)
         if not isinstance(mail_item.last_event_name, list):
             mail_item.last_event_name = []
+
         mail_item.last_event_name.append(status_text)
 
         mail_item.save()
