@@ -381,19 +381,20 @@ class MailItemUpdateStatus(APIView):
             mail_item = MailItem(barcode=barcode)
 
         # Region va Districtni aniqlash (xavfsiz)
-        clean_name = warehouse_name.split("-")[0].split("/")[0].strip()
-        district = District.objects.filter(name__icontains=clean_name).first()
-        if district:
-            mail_item.district = district.name
-            mail_item.region = district.region.name
-        else:
-            region = Region.objects.filter(name__icontains=clean_name).first()
-            if region:
-                mail_item.region = region.name
-
+        
         # Statusga qarab qo‘shimcha maydonlarni to‘ldirish
         if status_text == "completed" or status_text == "issued_to_recipient":
             mail_item.is_delivered = True
+            clean_name = warehouse_name.split("-")[0].split("/")[0].strip()
+            district = District.objects.filter(name__icontains=clean_name).first()
+            if district:
+                mail_item.district = district.name
+                mail_item.region = district.region.name
+            else:
+                region = Region.objects.filter(name__icontains=clean_name).first()
+                if region:
+                    mail_item.region = region.name
+
         elif status_text == "received":
             mail_item.received_date = event_date
 
