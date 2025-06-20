@@ -65,7 +65,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 class MailItem(models.Model):
     batch = models.CharField(max_length=255, null=True, blank=True)  # ✅ Bo‘sh bo‘lishi mumkin
     barcode = models.CharField(max_length=50, unique=True)  # Majburiy
-    weight = models.FloatField()  # Majburiy
     send_date = models.DateTimeField(null=True, blank=True)  # ✅ Bo‘sh bo‘lishi mumkin
     received_date = models.DateTimeField(null=True, blank=True)
     last_event_date = models.DateTimeField(null=True, blank=True)
