@@ -362,7 +362,6 @@ class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
 
 
-
 class MailItemUpdateStatus(APIView):
     permission_classes = [AllowAny]
 
@@ -387,19 +386,22 @@ class MailItemUpdateStatus(APIView):
         except MailItem.DoesNotExist:
             mail_item = MailItem(barcode=barcode)
 
-        if status_text == "completed":
+        # Har doim statusga bog'liq bo'lmasdan region/districtni yangilaymiz
+        found_location = False
+        try:
+            district = District.objects.get(name__icontains=warehouse_name)
+            mail_item.district = district.name
+            mail_item.region = district.region.name
+            found_location = True
+        except District.DoesNotExist:
             try:
-                region = Region.objects.get(name__iexact=warehouse_name)
+                region = Region.objects.get(name__icontains=warehouse_name)
                 mail_item.region = region.name
+                found_location = True
             except Region.DoesNotExist:
-                try:
-                    district = District.objects.get(name__iexact=warehouse_name)
-                    mail_item.district = district.name
-                    mail_item.region = district.region.name
+                pass  # Hech narsa o‘zgartirilmaydi
 
-                except District.DoesNotExist:
-                    mail_item.city = warehouse_name
-
+        if status_text == "completed":
             mail_item.is_delivered = True
 
         elif status_text == "received":
@@ -414,4 +416,8 @@ class MailItemUpdateStatus(APIView):
 
         mail_item.save()
 
-        return Response({"message": "MailItem updated or created successfully"}, status=200)
+        return Response({
+            "message": "MailItem updated or created successfully",
+            "region": mail_item.region,
+            "district": mail_item.district
+        }, status=200)
