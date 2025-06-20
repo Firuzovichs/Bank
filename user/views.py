@@ -214,13 +214,7 @@ class MailItemAllListView(APIView):
         if barcode:
             filters &= Q(barcode__icontains=barcode)
 
-        weight = request.GET.get('weight')
-        if weight:
-            try:
-                weight = float(weight)
-                filters &= Q(weight=weight)
-            except ValueError:
-                return Response({"error": "Noto‘g‘ri weight qiymati"}, status=400)
+        
 
         city = request.GET.get('city')
         if city:
