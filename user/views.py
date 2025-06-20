@@ -398,7 +398,7 @@ class MailItemUpdateStatus(APIView):
                 mail_item.region = region.name
 
         # Statusga qarab qo‘shimcha maydonlarni to‘ldirish
-        if status_text == "completed":
+        if status_text == "completed" or status_text == "issued_to_recipient":
             mail_item.is_delivered = True
         elif status_text == "received":
             mail_item.received_date = event_date
