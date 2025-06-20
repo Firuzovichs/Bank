@@ -368,6 +368,7 @@ class MailItemUpdateStatus(APIView):
 
     def post(self, request):
         data = request.data
+        print(data)
         barcode = data.get("order_number")
         warehouse_name = data.get("warehouse_name")
         status_text = data.get("status")
