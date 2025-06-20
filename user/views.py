@@ -389,13 +389,13 @@ class MailItemUpdateStatus(APIView):
         # Har doim statusga bog'liq bo'lmasdan region/districtni yangilaymiz
         found_location = False
         try:
-            district = District.objects.get(name__icontains=warehouse_name)
+            district = District.objects.filter(name__icontains=warehouse_name).first()
             mail_item.district = district.name
             mail_item.region = district.region.name
             found_location = True
         except District.DoesNotExist:
             try:
-                region = Region.objects.get(name__icontains=warehouse_name)
+                region = Region.objects.filter(name__icontains=warehouse_name).first()
                 mail_item.region = region.name
                 found_location = True
             except Region.DoesNotExist:
