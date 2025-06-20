@@ -42,7 +42,7 @@ class MailItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = MailItem
         fields = [
-            'barcode', 'weight', 'send_date',
+            'barcode', 'send_date',
             'received_date', 'last_event_date',
             'city','is_check',
             'checked_name', 'checked_time', 'checked_image'
