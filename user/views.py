@@ -13,7 +13,7 @@ from django.db.models import Sum, Count
 from rest_framework import status
 from .models import MailItem
 from PIL import Image
-from .models import BankUsers,Region,District
+from .models import BankUsers,Region,District,Location
 from django.db.models.functions import TruncMonth
 import calendar
 from django.db.models import Count
@@ -380,28 +380,28 @@ class MailItemUpdateStatus(APIView):
         except MailItem.DoesNotExist:
             mail_item = MailItem(barcode=barcode)
 
+        if warehouse_name:
+            location = Location.objects.filter(name=warehouse_name).select_related("region", "district").first()
+
+            if location:
+                mail_item.region = location.region.name
+                mail_item.district = location.district.name
+                mail_item.city = location.name  # location nomini city sifatida saqlaymiz
+                mail_item.lat = location.lat
+                mail_item.long = location.long
+
         # Region va Districtni aniqlash (xavfsiz)
         
         # Statusga qarab qo‘shimcha maydonlarni to‘ldirish
         if status_text == "completed" or status_text == "issued_to_recipient":
             mail_item.is_delivered = True
-            clean_name = warehouse_name.split("-")[0].split("/")[0].strip()
-            district = District.objects.filter(name__icontains=clean_name).first()
-            if district:
-                mail_item.district = district.name
-                mail_item.region = district.region.name
-            else:
-                region = Region.objects.filter(name__icontains=clean_name).first()
-                if region:
-                    mail_item.region = region.name
-
+    
         elif status_text == "received":
             mail_item.received_date = event_date
 
         # Umumiy yangilanishlar
         mail_item.last_event_date = event_date
 
-        # last_event_name ni list sifatida saqlaymiz (agar avval string bo'lsa ham)
         if not isinstance(mail_item.last_event_name, list):
             mail_item.last_event_name = []
 

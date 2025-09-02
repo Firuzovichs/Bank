@@ -78,6 +78,10 @@ class MailItem(models.Model):
     checked_name = models.CharField(max_length=255,null=True,blank=True)
     checked_time = models.DateTimeField(null=True, blank=True)  # ✅ Qo‘shildi
     checked_image = models.ImageField(upload_to='checked_images/', null=True, blank=True)  # Yangi maydon
+    lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    long = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+
 
     def __str__(self):
         return f"{self.batch} - {self.barcode}"
@@ -116,3 +120,19 @@ class District(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.region.name})"
+    
+
+
+class Location(models.Model):  # yangi model
+    name = models.CharField(max_length=150)
+    index = models.CharField(max_length=20, unique=True)  # masalan pochta indeksi
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name="locations")
+    district = models.ForeignKey(District, on_delete=models.CASCADE, related_name="locations")
+    lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    long = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('region', 'district', 'name')  # Bir hududda nom takrorlanmasin
+
+    def __str__(self):
+        return f"{self.name} - {self.index}"
