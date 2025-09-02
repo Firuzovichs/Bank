@@ -1,7 +1,7 @@
 
 from django.contrib import admin
 from django.urls import path
-from user.views import CheckedMailItemsAPIView,FaceRecognitionAPIView,MyTokenObtainPairView,MailItemUpdateStatus,MailItemAllListView,BatchStatisticsAPIView,CheckMailItemAPIView,MailItemStatsAPIView,ReceivedDateMonthCountView,DeliveredMailItemListView
+from user.views import CheckedMailItemsAPIView,MailItemCoordinatesView,FaceRecognitionAPIView,MyTokenObtainPairView,MailItemUpdateStatus,MailItemAllListView,BatchStatisticsAPIView,CheckMailItemAPIView,MailItemStatsAPIView,ReceivedDateMonthCountView,DeliveredMailItemListView
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/v1/checked-mails/', DeliveredMailItemListView.as_view(), name='checked-mails'),
     path('api/v1/batch-status/', BatchStatisticsAPIView.as_view(), name='batch-status'),
     path('api/v1/mails-all/', MailItemAllListView.as_view(), name='mails-all'),
+    path('api/v1/coordinates/', MailItemCoordinatesView.as_view(), name='coordinates'),
 ]
 
 if settings.DEBUG:

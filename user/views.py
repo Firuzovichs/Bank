@@ -421,3 +421,22 @@ class MailItemUpdateStatus(APIView):
             "region": mail_item.region,
             "district": mail_item.district
         }, status=200)
+    
+
+
+class MailItemCoordinatesView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        # lat/long bo'sh bo'lmaganlarini olib, guruhlab sanaymiz
+        coords = (
+            MailItem.objects
+            .filter(lat__isnull=False, long__isnull=False)
+            .values("lat", "long")
+            .annotate(count=Count("id"))
+            .order_by("-count")  # eng ko‘p bo‘lganlar yuqorida chiqadi
+        )
+
+        return Response({
+            "coordinates": list(coords)
+        }, status=200)
