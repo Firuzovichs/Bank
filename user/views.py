@@ -9,6 +9,7 @@ from django.utils.timezone import now
 from django.utils import timezone
 import numpy as np
 import face_recognition
+import logging
 from django.db.models import Sum, Count
 from rest_framework import status
 from .models import MailItem
@@ -28,6 +29,10 @@ from io import BytesIO
 import base64
 import uuid
 from django.core.files.base import ContentFile
+
+
+logger = logging.getLogger(__name__)
+
 
 class MailItemPagination(PageNumberPagination):
     page_size = 10  # Har bir sahifada 10 ta element chiqadi
@@ -360,6 +365,8 @@ class MailItemUpdateStatus(APIView):
 
     def post(self, request):
         data = request.data
+        logger.info(f"Received data: {data}")
+
         print(data)
 
         barcode = data.get("order_number")
