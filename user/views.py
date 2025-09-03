@@ -40,16 +40,15 @@ class MailItemPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class CheckedMailItemsAPIView(APIView):
+class MailItemsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         queryset = MailItem.objects.all().order_by('-checked_time')
         paginator = MailItemPagination()
         page = paginator.paginate_queryset(queryset, request)
-        serializer = CheckedMailItemSerializer(page, many=True)
+        serializer = MailItemSerializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
-
 
 class FaceRecognitionAPIView(APIView):
     permission_classes = [IsAuthenticated]
