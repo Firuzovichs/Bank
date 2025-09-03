@@ -4,12 +4,13 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import BankUsers,MailItem
 
-
 class CheckedMailItemSerializer(serializers.ModelSerializer):
+    checker = serializers.BooleanField(source='is_check')  # is_check ni checker deb ko‘rsatamiz
+
     class Meta:
         model = MailItem
-        fields = ['barcode', 'checked_name', 'checked_time']
-
+        fields = ['barcode', 'checked_name', 'checked_time', 'checker']
+        
 class BankUsersProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = BankUsers
