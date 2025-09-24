@@ -198,15 +198,20 @@ class MailItemAllListView(APIView):
 
     def get(self, request):
         filters = Q()
-        user = request.user
+        user = request.user  
 
-        # Foydalanuvchining viloyat yoki tuman maydonlarini tekshirish
-        if user.tuman:
-            filters &= Q(district=user.tuman)
-        elif user.viloyat:
-            filters &= Q(region=user.viloyat)
-        else:
-            return Response({"error": "Foydalanuvchi tuman yoki viloyat bilan bog‘lanmagan"}, status=400)
+        # Auth User -> BankUsers bog‘lash
+        try:
+            bank_user = BankUsers.objects.get(fish=user.first_name)
+        except BankUsers.DoesNotExist:
+            return Response({"error": "BankUsers maʼlumotlari topilmadi"}, status=400)
+
+        # Region va district bo‘yicha filterlash
+        if bank_user.district:
+            filters &= Q(district=bank_user.district)
+        elif bank_user.region:
+            filters &= Q(region=bank_user.region)
+        # Agar ikkisi ham yo‘q bo‘lsa, filter qo‘shilmaydi → hamma maʼlumot chiqadi ✅
 
         # Qo‘shimcha query parametrlarga asoslangan filterlar
         batch = request.GET.get('batch')
@@ -217,12 +222,11 @@ class MailItemAllListView(APIView):
         if barcode:
             filters &= Q(barcode__icontains=barcode)
 
-        
-
         city = request.GET.get('city')
         if city:
             filters &= Q(city__icontains=city)
 
+        # Sana bo‘yicha filter
         date_fields = ['send_date', 'received_date', 'last_event_date']
         for field in date_fields:
             date_value = request.GET.get(field)
@@ -238,16 +242,17 @@ class MailItemAllListView(APIView):
         # MailItemlarni olish
         mail_items = MailItem.objects.filter(filters).order_by('-updated_at')
 
-        # last_event_name bo‘yicha filtr
+        # last_event_name bo‘yicha filter
         last_event_name = request.GET.get('last_event_name')
         if last_event_name:
-            mail_items = [item for item in mail_items if item.last_event_name and item.last_event_name[-1] == last_event_name]
+            mail_items = mail_items.filter(last_event_name__icontains=last_event_name)
 
         # Sahifalash
         paginator = MailItemPagination()
         paginated_mail_items = paginator.paginate_queryset(mail_items, request)
         serializer = MailItemSerializer(paginated_mail_items, many=True)
         return paginator.get_paginated_response(serializer.data)
+
 
 class DeliveredMailItemListView(ListAPIView):
     serializer_class = MailItemSerializer
