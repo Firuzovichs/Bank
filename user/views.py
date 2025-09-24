@@ -197,21 +197,7 @@ class MailItemAllListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        filters = Q()
-        user = request.user  
-
-        # Auth User -> BankUsers bog‘lash
-        try:
-            bank_user = BankUsers.objects.get(fish=user.first_name)
-        except BankUsers.DoesNotExist:
-            return Response({"error": "BankUsers maʼlumotlari topilmadi"}, status=400)
-
-        # Region va district bo‘yicha filterlash
-        if bank_user.district:
-            filters &= Q(district=bank_user.district)
-        elif bank_user.region:
-            filters &= Q(region=bank_user.region)
-        # Agar ikkisi ham yo‘q bo‘lsa, filter qo‘shilmaydi → hamma maʼlumot chiqadi ✅
+        filters = Q()  # hech qanday userga bog‘liq filter yo‘q
 
         # Qo‘shimcha query parametrlarga asoslangan filterlar
         batch = request.GET.get('batch')
@@ -239,7 +225,7 @@ class MailItemAllListView(APIView):
             if to_date:
                 filters &= Q(**{f"{field}__lte": to_date})
 
-        # MailItemlarni olish
+        # MailItemlarni olish (filter faqat query params bo‘yicha)
         mail_items = MailItem.objects.filter(filters).order_by('-updated_at')
 
         # last_event_name bo‘yicha filter
@@ -252,6 +238,7 @@ class MailItemAllListView(APIView):
         paginated_mail_items = paginator.paginate_queryset(mail_items, request)
         serializer = MailItemSerializer(paginated_mail_items, many=True)
         return paginator.get_paginated_response(serializer.data)
+
 
 
 class DeliveredMailItemListView(ListAPIView):
